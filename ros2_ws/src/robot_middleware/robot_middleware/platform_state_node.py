@@ -2,19 +2,22 @@
 
 import rclpy
 from rclpy.node import Node
+import lgpio
+import time
 
-import RPi.GPIO as GPIO
 from std_msgs.msg import Float32
 
 
 class PlatformStateNode(Node):
 
-    SERVO_PIN = 18
+    SERVO_PIN = 18  # GPIO18
 
     def __init__(self):
         super().__init__('platform_state_node')
 
+        # ─────────────────────────────
         # ROS interfaces
+        # ─────────────────────────────
         self.cmd_sub = self.create_subscription(
             Float32,
             '/inspection_servo_cmd',
@@ -28,54 +31,52 @@ class PlatformStateNode(Node):
             10
         )
 
-        # GPIO setup
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.SERVO_PIN, GPIO.OUT)
-
-        self.pwm = GPIO.PWM(self.SERVO_PIN, 50)
-        self.pwm.start(0)
+        # ─────────────────────────────
+        # GPIO (Pi 5 FIX)
+        # ─────────────────────────────
+        self.h = lgpio.gpiochip_open(4)
+        lgpio.gpio_claim_output(self.h, self.SERVO_PIN)
 
         self.current_angle = 0.0
 
-        self.get_logger().info("Platform State Node started")
+        self.get_logger().info("Platform State Node started (lgpio Pi5 ready)")
 
-    # ─────────────────────────────────────
-    # Receive command from Unity / ROS
-    # ─────────────────────────────────────
+    # ─────────────────────────────
+    # ROS callback
+    # ─────────────────────────────
     def cmd_callback(self, msg: Float32):
 
-        target = msg.data
+        target = float(msg.data)
         self.get_logger().info(f"Servo target: {target}°")
 
         self.set_angle(target)
 
-        # update internal state
         self.current_angle = target
-
-        # publish state back
         self.publish_state()
 
-    # ─────────────────────────────────────
-    # Hardware control
-    # ─────────────────────────────────────
+    # ─────────────────────────────
+    # Hardware control (LGPIO)
+    # ─────────────────────────────
     def set_angle(self, angle):
-
-        duty = 2 + angle / 18
-        self.pwm.ChangeDutyCycle(duty)
-
-    # ─────────────────────────────────────
-    # Publish state to Unity
-    # ─────────────────────────────────────
+        angle = max(0, min(180, angle))
+        pulse = int(500 + (angle / 180.0) * 2000)  # cast to int
+        lgpio.tx_servo(self.h, self.SERVO_PIN, pulse)
+        time.sleep(0.2)
+    # ─────────────────────────────
+    # Publish state
+    # ─────────────────────────────
     def publish_state(self):
 
         msg = Float32()
         msg.data = float(self.current_angle)
         self.state_pub.publish(msg)
 
+    # ─────────────────────────────
+    # Cleanup
+    # ─────────────────────────────
     def destroy_node(self):
 
-        self.pwm.stop()
-        GPIO.cleanup()
+        lgpio.gpiochip_close(self.h)
         super().destroy_node()
 
 
