@@ -62,6 +62,7 @@ class PlatformStateNode(Node):
         pulse = int(500 + (angle / 180.0) * 2000)  # cast to int
         lgpio.tx_servo(self.h, self.SERVO_PIN, pulse)
         time.sleep(0.2)
+        lgpio.tx_servo(self.h, self.SERVO_PIN, 0)
     # ─────────────────────────────
     # Publish state
     # ─────────────────────────────
