@@ -3,7 +3,7 @@ import time
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
-
+from my_robot_interfaces.msg import RobotCommand
 
 class RobotMover:
 
@@ -15,7 +15,7 @@ class RobotMover:
 
         self.traj_pub = node.create_publisher(
             JointTrajectory, '/planned_trajectory', 10)
-
+        self.publisher_ = self.create_publisher(RobotCommand, '/robot_cmd', 10)
         self.cmd_pub = node.create_publisher(
             String, '/stm32_cmd', 10)
 
@@ -97,7 +97,23 @@ class RobotMover:
         self.node.get_logger().info(
             f"Trajectory sent with {len(points)} points"
         )
-
+    def send_move(self, x, y, z):
+        msg = RobotCommand()
+        msg.base_id = "unity_web_client"
+        
+        # Set target position (x, y, z)
+        msg.target_pose.position.x = float(x)
+        msg.target_pose.position.y = float(y)
+        msg.target_pose.position.z = float(z)
+        
+        # Set target orientation (default quaternion, pitch=0)
+        msg.target_pose.orientation.x = 0.0
+        msg.target_pose.orientation.y = 0.0
+        msg.target_pose.orientation.z = 0.0
+        msg.target_pose.orientation.w = 1.0
+        
+        self.get_logger().info(f'Sending movement command: pos=({x}, {y}, {z})')
+        self.publisher_.publish(msg)
     # ─────────────────────────────────────────────
     def send_gripper(self, state: str):
         msg = String()
@@ -169,6 +185,7 @@ class RobotMover:
         ])
 
         self.wait_for_motion(10)
+        
     def move_robot_to_Pick_View(self):
         self.node.get_logger().info("Moving to PICK VIEW")
 
@@ -182,17 +199,12 @@ class RobotMover:
         ])
 
         self.wait_for_motion(10)
+
+
     def move_robot_pick_gear(self, x, y):
         self.node.get_logger().info(f"Moving to PICK GEAR at ({x}, {y})")
 
-        target = [x, y, -0.8, 0.0]
-        cur = self.current_positions
-
-        self.send_trajectory([
-            [cur[0], -0.5, -0.5, cur[3]],
-            [target[0], -0.5, -0.5, target[3]],
-            target
-        ])
+        self.send_move(x, y, 0.1)  # Move above the gear
 
         self.wait_for_motion(10)
         self.send_gripper("grip_close")

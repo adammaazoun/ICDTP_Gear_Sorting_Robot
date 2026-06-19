@@ -64,7 +64,7 @@ class InspectionNode(Node):
         
         self.rotate_platform(180.0)
 
-        side2_status, side2_details = validate_top_view()
+        side2_status, side2_details = validate_side_view()
 
         if side2_status == "Defected":
             self.handle_defective_part(top_details)
@@ -91,6 +91,7 @@ class InspectionNode(Node):
         self.get_logger().info(f"Rotate {angle}°")
 
         time.sleep(self.ROTATE_WAIT_SEC)   # ✔️ simple blocking wait
+
 
 
 def main(args=None):
