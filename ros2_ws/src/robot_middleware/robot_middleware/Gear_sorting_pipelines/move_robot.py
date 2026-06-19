@@ -155,3 +155,45 @@ class RobotMover:
         self.wait_for_motion(10)
         self.send_gripper("grip_open")
         self.wait_for_motion(5)
+
+    def move_robot_to_Top_View(self):
+        self.node.get_logger().info("Moving to TOP VIEW")
+
+        target = [-5.0, -1.0, -0.8, 0.0]
+        cur = self.current_positions
+
+        self.send_trajectory([
+            [cur[0], -0.5, -0.5, cur[3]],
+            [target[0], -0.5, -0.5, target[3]],
+            target
+        ])
+
+        self.wait_for_motion(10)
+    def move_robot_to_Pick_View(self):
+        self.node.get_logger().info("Moving to PICK VIEW")
+
+        target = [-5.0, -1.0, -0.8, 0.0]
+        cur = self.current_positions
+
+        self.send_trajectory([
+            [cur[0], -0.5, -0.5, cur[3]],
+            [target[0], -0.5, -0.5, target[3]],
+            target
+        ])
+
+        self.wait_for_motion(10)
+    def move_robot_pick_gear(self, x, y):
+        self.node.get_logger().info(f"Moving to PICK GEAR at ({x}, {y})")
+
+        target = [x, y, -0.8, 0.0]
+        cur = self.current_positions
+
+        self.send_trajectory([
+            [cur[0], -0.5, -0.5, cur[3]],
+            [target[0], -0.5, -0.5, target[3]],
+            target
+        ])
+
+        self.wait_for_motion(10)
+        self.send_gripper("grip_close")
+        self.wait_for_motion(5)

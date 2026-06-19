@@ -9,6 +9,7 @@ from std_msgs.msg import Float32
 from robot_middleware.Gear_sorting_pipelines.move_robot import RobotMover
 from robot_middleware.Gear_sorting_pipelines.top_view_pipeline import validate_top_view
 from robot_middleware.Gear_sorting_pipelines.side_view_pipeline import validate_side_view
+from robot_middleware.Gear_sorting_pipelines.pick_Algo import Pick_Algo
 
 class InspectionNode(Node):
 
@@ -38,8 +39,15 @@ class InspectionNode(Node):
 
     def run_inspection(self):
 
+        self.get_logger().info("Starting inspection sequence")
+        self.robot_mover.move_robot_to_Pick_View()
+        _,_,_,Table = Pick_Algo()
+        self.get_logger().info(f"Gear Table: {Table}")
+        self.robot_mover.move_robot_pick_gear(Table[0]["robot_x"], Table[0]["robot_y"])
+    
         self.rotate_platform(0.0)
         self.robot_mover.move_to_station()
+        self.robot_mover.move_robot_to_Top_View()
         self.get_logger().info("Running top-view inspection")
         top_status, top_details = validate_top_view()
         self.get_logger().info(f"Top => {top_status} | {top_details}")
